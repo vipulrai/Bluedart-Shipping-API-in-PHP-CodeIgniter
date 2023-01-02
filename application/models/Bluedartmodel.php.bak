@@ -1,0 +1,1215 @@
+<?php
+defined('BASEPATH') OR exit('No direct script access allowed');
+class User extends CI_Model {
+    public function __construct(){
+		$this->load->library('session');
+		$this->load->library('email');
+        $this->load->database();
+    }
+    public function checkingMailid($emailid){
+        $query = $this->db->query("CALL GetMailById('".$emailid."')");
+        $result = $query->result();
+        mysqli_next_result( $this->db->conn_id );
+        $numofid = $result[0]->numOfids;
+        return $numofid;
+    }
+    public function usersignup(){
+        date_default_timezone_set('Asia/Calcutta');
+		$cdate      = date('Y-m-d h-i-s');
+        $fullname   = $this->input->post('fullname');
+        $age        = $this->input->post('age');
+        $contactnum = $this->input->post('contactnum');
+        $emailid    = $this->input->post('emailid');
+        $emailid    = str_replace(' ','',$emailid);
+        $upwd       = md5($this->input->post('upwd'));
+        $state      = $this->input->post('statename');
+        $idproof    = $this->input->post('idproof');
+        $adhaarFrontnew_name    = $_FILES["AdhaarFront"]["name"];
+        $adhaarBacknew_name     = $_FILES["AdhaarBack"]["name"];
+        $passportnew_name       = $_FILES["passport"]["name"];
+        $DrivingLicensenew_name = $_FILES["DrivingLicense"]["name"];
+        $electionFrontnew_name  = $_FILES["electionFront"]["name"];
+        $electionBacknew_name   = $_FILES["electionBack"]["name"];
+        $terms                  = $this->input->post('terms');
+        if($adhaarFrontnew_name=="" && $adhaarBacknew_name=="" && $passportnew_name=="" && $DrivingLicensenew_name=="" && $electionFrontnew_name=="" && $electionBacknew_name==""){
+            echo "ID Proof is mandatory!"; echo '<a href="https://antplay.tech/signup"> BACK <a>'; die();
+        }
+        /* Adhar Section Start*/
+        if($adhaarFrontnew_name!="" && $adhaarBacknew_name!=""){
+            $afuniq = uniqid(rand(), true);
+            $abuniq = uniqid(rand(), true);
+            $tempnameAdhaarFront = $_FILES['AdhaarFront']['tmp_name'];
+            $AdhaarFrontname = $_FILES["AdhaarFront"]["name"];
+            $aext = explode(".", $AdhaarFrontname); //extra () to prevent notice
+		    $aext = end($aext); 
+            $adhaarFrontnew_name ="extra/adhar/".$cdate."-".$fullname.$afuniq .".".$aext;
+            $adhaarFrontfilesize = $_FILES["AdhaarFront"]["size"];
+            if($adhaarFrontfilesize < 1000000 && $adhaarFrontfilesize!=""){
+                if($aext=="pdf" || $aext=="PDF" || $aext=="png" || $aext=="PNG" || $aext=="jpg" || $aext=="JPG" || $aext=="jpeg" || $aext=="JPEG") {
+                    move_uploaded_file($tempnameAdhaarFront,$adhaarFrontnew_name);
+                }else{
+                    echo "Adhar allow only in JPG,PNG or PDF format!"; echo '<a href="https://antplay.tech/signup"> BACK <a>'; die();
+                }
+            }
+            $tempnameAdhaarBack  = $_FILES['AdhaarBack']['tmp_name'];
+            $AdhaarBackname = $_FILES["AdhaarBack"]["name"];
+            $abext = explode(".", $AdhaarBackname);
+            $abext = end($abext); 
+            $adhaarBacknew_name ="extra/adhar/".$cdate."-".$fullname.$abuniq .".".$abext;
+            $adhaarBackfilesize = $_FILES["AdhaarBack"]["size"];
+            if($adhaarBackfilesize < 1000000 && $adhaarBackfilesize!=""){
+                if($abext=="pdf" || $abext=="PDF" || $abext=="png" || $abext=="PNG" || $abext=="jpg" || $abext=="JPG" || $abext=="jpeg" || $abext=="JPEG") {
+                    move_uploaded_file($tempnameAdhaarBack,$adhaarBacknew_name);
+                }else{
+                    echo "Adhar allow only in PDF,PNG or PDF format!"; echo '<a href="https://antplay.tech/signup"> BACK <a>'; die();
+                }
+            }else{
+                echo "Adhar File size exceeded!"; echo '<a href="https://antplay.tech/signup"> BACK <a>'; die();
+            }
+        }
+        if($adhaarFrontnew_name==""){
+            $adhaarFrontnew_name="None";
+        }
+        if($adhaarBacknew_name==""){
+            $adhaarBacknew_name="None";
+        }
+        /* Passport Section Start */
+        if($passportnew_name!=""){
+            $pasuniq = uniqid(rand(), true);
+            $tempnamepassport = $_FILES["passport"]["tmp_name"];
+            $passportname = $_FILES["passport"]["name"];
+            $adext = explode(".", $passportname);
+            $adext = end($adext); 
+            $passportnew_name ="extra/passport/".$cdate."-".$fullname.$pasuniq .".".$adext;
+            $passportfilesize = $_FILES["passport"]["size"];
+            if($passportfilesize < 1000000 && $passportfilesize!=""){
+                if($adext=="pdf" || $adext=="PDF" || $adext=="png" || $adext=="PNG" || $adext=="jpg" || $adext=="JPG" || $adext=="jpeg" || $adext=="JPEG") {
+                    move_uploaded_file($tempnamepassport,$passportnew_name);
+                }else{
+                     echo "Passport allow only in PDF,PNG or PDF format!"; echo '<a href="https://antplay.tech/signup"> BACK <a>'; die();
+                }
+            }else{
+                echo "Passport File size exceeded!"; echo '<a href="https://antplay.tech/signup"> BACK <a>'; die();
+            }
+        }
+        if($passportnew_name==""){
+            $passportnew_name="None";
+        }
+
+        /* Driving License Section Start */
+        if($DrivingLicensenew_name!=""){
+            $licuniq = uniqid(rand(), true);
+            $tempnameDrivingLicense = $_FILES["DrivingLicense"]["tmp_name"];
+            $DrivingLicensename = $_FILES["DrivingLicense"]["name"];
+            $dlext = explode(".", $DrivingLicensename);
+            $dlext = end($dlext); 
+            $DrivingLicensenew_name ="extra/dlicense/".$cdate."-".$fullname.$licuniq .".".$dlext;
+            $DrivingLicensefilesize = $_FILES["DrivingLicense"]["size"];
+            if($DrivingLicensefilesize < 1000000 && $DrivingLicensefilesize!=""){
+                if($dlext=="pdf" || $dlext=="PDF" || $dlext=="png" || $dlext=="PNG" || $dlext=="jpg" || $dlext=="JPG" || $dlext=="jpeg" || $dlext=="JPEG") {
+                    move_uploaded_file($tempnameDrivingLicense,$DrivingLicensenew_name);
+                }else{
+                     echo "Driving License allow only in PDF,PNG or PDF format!"; echo '<a href="https://antplay.tech/signup"> BACK <a>'; die();
+                }
+            }else{
+                echo "Driving License File size exceeded!";  echo '<a href="https://antplay.tech/signup"> BACK <a>'; die();
+            }
+        }
+        if($DrivingLicensenew_name==""){
+            $DrivingLicensenew_name="None";
+        }
+        
+        /* Election Card Section Start */
+        
+        if($electionFrontnew_name!="" || $electionBacknew_name!=""){
+            
+            $elfuniq = uniqid(rand(), true);
+            $elbuniq = uniqid(rand(), true);
+            
+            $tempnameelectionFront = $_FILES["electionFront"]["tmp_name"];
+            $electionFrontname = $_FILES["electionFront"]["name"];
+            $elfext = explode(".", $electionFrontname);
+            $elfext = end($elfext); 
+            $electionFrontnew_name ="extra/election/".$cdate."-".$fullname.$elfuniq .".".$elfext;
+            $electionFrontsize = $_FILES["electionFront"]["size"];
+            if($electionFrontsize < 1000000 && $electionFrontsize!=""){
+                 if($elfext=="pdf" || $elfext=="PDF" || $elfext=="png" || $elfext=="PNG" || $elfext=="jpg" || $elfext=="JPG" || $elfext=="jpeg" || $elfext=="JPEG") {
+                     move_uploaded_file($tempnameelectionFront,$electionFrontnew_name);
+                 }else{
+                     echo "Election ID allow only in JPG,PNG or PDF format!"; echo '<a href="https://antplay.tech/signup"> BACK <a>'; die();
+                 }
+            }else{
+                echo "Election File size exceeded!"; echo '<a href="https://antplay.tech/signup"> BACK <a>'; die();
+            }
+            
+            $tempnameelectionBack = $_FILES["electionBack"]["tmp_name"];
+            $electionBackname = $_FILES["electionBack"]["name"];
+            $elbext = explode(".", $electionBackname);
+            $elbext = end($elbext);
+            $electionBacknew_name ="extra/election/".$cdate."-".$fullname.$elbuniq .".".$elbext;
+            $electionBacktsize = $_FILES["electionBack"]["size"];
+            if($electionBacktsize < 1000000 && $electionBacktsize!=""){
+                if($elbext=="pdf" || $elbext=="PDF" || $elbext=="png" || $elbext=="PNG" || $elbext=="jpg" || $elbext=="JPG" || $elbext=="jpeg" || $elbext=="JPEG") {
+                    move_uploaded_file($tempnameelectionBack,$electionBacknew_name);
+                }else{
+                    echo "Election ID allow only in JPG,PNG or PDF format!"; die();
+                }
+            }else{
+                echo "Election File size exceeded!"; echo '<a href="https://antplay.tech/signup"> BACK <a>'; die();
+            }
+        }
+
+        if($electionFrontnew_name==""){
+            $electionFrontnew_name="None";
+        }
+        
+        if($electionBacknew_name==""){
+            $electionBacknew_name="None";
+        }
+
+		$datas = array('fullname'=>$fullname,'age'=>$age,'emailid'=>$emailid,'userpassword'=>$upwd,'state'=>$state,'contactnum' =>$contactnum,'signupdate'=>$cdate,'status'=>'0','admin_status'=>0,'pay_status'=>0,'idproof'=>$idproof,'adhaarfront'=>$adhaarFrontnew_name,'adhaarback'=>$adhaarBacknew_name,'passport'=>$passportnew_name,'drivingLicense'=>$DrivingLicensenew_name,'electionFront'=>$electionFrontnew_name,'electionBack'=>$electionBacknew_name,'terms'=>$terms);
+        $this->db->insert('ply_signup',$datas);
+		$insert_id = $this->db->insert_id();
+		$i= $this->db->affected_rows();
+		if($i>0){ 
+		    $defaultimage = "extra/profilepic/user-profile.png";
+		    $datas = array('user_id'=>$insert_id,'imageName'=>$defaultimage);
+		    $this->db->insert('ply_profile_pic',$datas);
+			return true; 		
+		}else{
+		    return false;
+		}
+    }
+    public function emailverification($fullname,$emailid){
+        date_default_timezone_set('Asia/Calcutta');
+		$cdate      = date('Y-m-d h-i-s');
+		/*$xx = explode('-',$cdate);
+		$h= $xx[0];
+		$m= $xx[1];
+		$s= $xx[2];
+		$min = $m+3;
+		$cdate = $h."-".$min."-".$s; */
+
+		$six_Digit   = substr(str_shuffle(str_repeat("0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz", 6)), 0, 6);
+		$datass = array('emailid'=>$emailid,'uniqueid'=>$six_Digit,'cdate'=>$cdate);
+		$this->db->insert('ply_acc_activation',$datass);
+		
+		$message = '<table border="0" cellpadding="0" cellspacing="0" class="body" style="border-collapse: separate; mso-table-lspace: 0pt; mso-table-rspace: 0pt; width: 100%; background-color: #f6f6f6;">
+                          <tr>
+                            <td style="font-family: sans-serif; font-size: 14px; vertical-align: top;">&nbsp;</td>
+                            <td class="container" style="font-family: sans-serif; font-size: 14px; vertical-align: top; display: block; Margin: 0 auto; max-width: 580px; padding: 10px; width: 580px;"><div class="content" style="box-sizing: border-box; display: block; Margin: 0 auto; max-width: 580px; padding: 10px;"> 
+                                <!-- START CENTERED WHITE CONTAINER -->
+                                <table class="main" border="0" cellpadding="0" cellspacing="0" style="border-collapse: separate; mso-table-lspace: 0pt; mso-table-rspace: 0pt; width: 100%; background: #ffffff; color:#222; border-radius: 3px; border-spacing:0px;">
+                                  <!-- START MAIN CONTENT AREA -->
+                                  <tr style="background-color:#333;">
+                                    <td width="49%" style="padding-top: 5px; padding-bottom: 5px; padding-left: 15px; color:#ccc; font-size: 12px;">  &nbsp;&nbsp;  | &nbsp;&nbsp; <a href="mailto:no-reply@antplay.tech" style="color:#ccc;">no-reply@antplay.tech</a></td>
+                                    <td width="51%" align="right" style="padding-top: 5px; padding-bottom: 5px; padding-right: 15px;"><a href="#" title="Facebook" target="_blank" style="display: inline-block;margin-right: 3px;"><img src="https://antplay.tech/extra/images/icon-svg/facebook-logo.png" height="11" width="12" alt="facebook"> </a>&nbsp;&nbsp; <a href="#" title="Twitter" target="_blank" style="display: inline-block;margin-right: 3px;vertical-align: middle"><img src="https://antplay.tech/extra/images/icon-svg/twitter-logo.png" alt="twitter" width="14" height="12"> </a>&nbsp;&nbsp; <a href="#" title="instagram" target="_blank" style="display: inline-block;margin-right: 4px"><img src="https://antplay.tech/extra/images/icon-svg/instagram.png" alt="Instagram" width="12" height="12"> </a>&nbsp;&nbsp; <a href="#" title="linkedin" target="_blank" style="display: inline-block;margin-right: 3px"><img src="https://antplay.tech/extra/images/icon-svg/linkedin-logo.png" height="12" width="12" alt="linkedin"> </a>&nbsp;&nbsp; <a href="#" title="youtube" target="_blank" style="display: inline-block"><img src="https://antplay.tech/extra/images/icon-svg/youtube.png" alt="youtube" width="12" height="12"></a></td>
+                                  </tr>
+                                  <tr style="background-color:#000;">
+                                    <td colspan="2" align="center" style="padding-top:15px; padding-bottom:15px;"><img src="https://antplay.tech/images/logo.png" style="width:175px;" height="auto" alt="Ant Play Logo"></td>
+                                  </tr>
+                                  <tr>
+                                    <td colspan="2" class="wrapper" style="font-family: sans-serif; font-size: 14px; vertical-align: top; box-sizing: border-box; padding: 50px 50px;"><table border="0" cellpadding="0" cellspacing="0" style="border-collapse: separate; mso-table-lspace: 0pt; mso-table-rspace: 0pt; width: 100%;">
+                                        <tr>
+                                          <td style="font-family: sans-serif; font-size: 14px; vertical-align: top;"><p style="font-family: sans-serif; font-size: 14px; font-weight: normal; margin: 0; Margin-bottom: 20px;">Welcome to ANT PLAY!,</p>
+                                            <p style="font-family: sans-serif; font-size: 14px; font-weight: normal; margin: 0; Margin-bottom: 10px;">If you have completed our registration form and you were expecting this <br>
+                                              e-mail,
+                                              Please click the button below to confirm registration: </p>
+                                            <br></td>
+                                        </tr>
+                                        <tr>
+                                          <td align="left" valign="top"><table border="0" cellpadding="0" cellspacing="0" style="border-collapse: separate; mso-table-lspace: 0pt; mso-table-rspace: 0pt; width: auto;">
+                                              <tbody>
+                                                <tr>
+                                                  <td style="font-family: sans-serif; font-size: 14px; vertical-align: top; background-color: #3498db; border-radius: 5px; text-align: center;"><a href="https://antplay.tech/login-activated?xml2IxcD='.$six_Digit.'&e='.base64_encode($emailid).'" target="_blank" style="display: inline-block; color: #ffffff; background-color: #3498db; border: solid 1px #3498db; border-radius: 5px; box-sizing: border-box; cursor: pointer; text-decoration: none; font-size: 14px; font-weight: bold; margin: 0; padding: 12px 25px; text-transform: capitalize; border-color: #3498db;">Activate</a></td>
+                                                </tr>
+                                              </tbody>
+                                            </table></td>
+                                        </tr>
+                                        <tr>
+                                          <td align="left" valign="top"><br>
+                                            <p style="padding-bottom: 1px; margin:0px; font-family: sans-serif; font-size:14px;"> <span style="color:red;">Important Security Reminders:</span></p>
+                                            <ul style="margin:0px; font-size:14px;">
+                                              <li>DO NOT give your password to anyone for any reason!</li>
+                                              <li>Always make sure you are visiting www.antplay.tech!</li>
+                                            </ul>
+                                            <br>
+                                            <p style="padding-bottom: 5px; margin:0px; font-family: sans-serif; font-size:14px; font-style: italic; color:#9c9c9c;"> If you did not make this request, please do not confirm the registration. </p>
+                                            <p style="padding-bottom: 1px; margin:0px; font-family: sans-serif; font-size:14px; font-style: italic; color:#9c9c9c;"> If you have any questions or concerns, Please feel free to contact our support team @ www.antplay.tech/contact-us </p></td>
+                                        </tr>
+                                      </table></td>
+                                  </tr>
+                                  <!-- END MAIN CONTENT AREA -->
+                                </table>
+                                <!-- START FOOTER -->
+                                <div class="footer" style="margin: 0px 0 0; background-color:#ffffff; background:#ffffff;">
+                                  <table border="0" cellpadding="0" cellspacing="0" style="border-top:2px solid #eee; border-collapse: separate;mso-table-lspace: 0pt;mso-table-rspace: 0pt;width: 100%; background-color:#ffffff;">
+                                    <tbody>
+                                      <tr>
+                                        <td>&nbsp;</td>
+                                      </tr>
+                                      <tr>
+                                        <td style="font-size: 12px; color: #666; text-align: center; font-family: sans-serif;font-size: 14px;vertical-align: top; color: #494949;"><span></span></td>
+                                      </tr>
+                                      <tr>
+                                        <td style="font-size: 12px; color: #666; text-align: center; font-family: sans-serif;font-size: 14px;vertical-align: top; color: #494949;"><a href="#" title="Terms & Conditions">Terms & Conditions</a> &nbsp; &#124; &nbsp; <a href="#" title="Privacy Policy">Privacy Policy</a>. </td>
+                                      </tr>
+                                      <tr>
+                                        <td style="height:20px"></td>
+                                      </tr>
+                                    </tbody>
+                                  </table>
+                                </div>
+                                <!-- END FOOTER --> 
+                                <!-- END CENTERED WHITE CONTAINER --> 
+                              </div></td>
+                            <td style="font-family: sans-serif; font-size: 14px; vertical-align: top;">&nbsp;</td>
+                          </tr>
+                        </table>';
+            $body =$message;
+            $result = $this->email
+                ->from('no-reply@antplay.tech','ANT PLAY')
+                ->to($emailid)
+                ->subject('ANT PLAY-Account Verification Link')
+                ->message($body)
+                ->send();
+            if($result){
+				return 1;
+            }
+			else{
+				return 0;
+			}
+    }
+    public function updateunic($updatedata){
+        //date_default_timezone_set('Asia/Calcutta');
+		//$date1      = date('Y-m-d h-i-s');
+		
+		//$date = new DateTime('now', new DateTimeZone('Asia/Kolkata'));
+        //echo $date1 = time()."<br>"; 
+		
+
+        $uid = $updatedata['uid'];
+    	$eid = $updatedata['eid'];
+    	
+    	$condition = "emailid  =" . "'" . $eid. "'"." AND"." uniqueid  =" . "'" . $uid. "'";
+		$this->db->select('*');
+		$this->db->from('ply_acc_activation');
+		$this->db->where($condition);
+		$query = $this->db->get();
+		$details = $query->result_array();
+	    $numofresult = sizeof($details);
+		if($numofresult==1){
+		    $date2 = $details[0]['cdate'];
+            $datas = array('status'=> '1');
+    		$this->db->where('emailid',$eid);
+    	    if($this->db->update('ply_signup',$datas)){
+    			return 1;
+    		}else{
+    		   return 0;
+    		}
+		}else{
+		    return 0;
+		}
+    }
+    public function thankyoumessage($emailid){
+        $msg_c  = '<table border="0" cellpadding="0" cellspacing="0" class="body" style="border-collapse: separate; mso-table-lspace: 0pt; mso-table-rspace: 0pt; width: 100%; background-color: #f6f6f6;">
+              <tr>
+                <td style="font-family: sans-serif; font-size: 14px; vertical-align: top;">&nbsp;</td>
+                <td class="container" style="font-family: sans-serif; font-size: 14px; vertical-align: top; display: block; Margin: 0 auto; max-width: 580px; padding: 10px; width: 580px;"><div class="content" style="box-sizing: border-box; display: block; Margin: 0 auto; max-width: 580px; padding: 10px;"> 
+                    <!-- START CENTERED WHITE CONTAINER -->
+                    <table class="main" border="0" cellpadding="0" cellspacing="0" style="border-collapse: separate; mso-table-lspace: 0pt; mso-table-rspace: 0pt; width: 100%; background: #ffffff; color:#222; border-radius: 3px; border-spacing:0px;">
+                      <!-- START MAIN CONTENT AREA -->
+                      <tr style="background-color:#333;">
+                        <td width="49%" style="padding-top: 5px; padding-bottom: 5px; padding-left: 15px; color:#ccc; font-size: 12px;">  &nbsp;&nbsp;  | &nbsp;&nbsp; <a href="mailto:support@antplay.tech" style="color:#ccc;">support@antplay.tech</a></td>
+                        <td width="51%" align="right" style="padding-top: 5px; padding-bottom: 5px; padding-right: 15px;"><a href="#" title="Facebook" target="_blank" style="display: inline-block;margin-right: 3px;"><img src="https://antplay.tech/extra/images/icon-svg/facebook-logo.png" height="11" width="12" alt="facebook"> </a>&nbsp;&nbsp; <a href="#" title="Twitter" target="_blank" style="display: inline-block;margin-right: 3px;vertical-align: middle"><img src="https://antplay.tech/extra/images/icon-svg/twitter-logo.png" alt="twitter" width="14" height="12"> </a>&nbsp;&nbsp; <a href="#" title="instagram" target="_blank" style="display: inline-block;margin-right: 4px"><img src="https://antplay.tech/extra/images/icon-svg/instagram.png" alt="Instagram" width="12" height="12"> </a>&nbsp;&nbsp; <a href="#" title="linkedin" target="_blank" style="display: inline-block;margin-right: 3px"><img src="https://antplay.tech/extra/images/icon-svg/linkedin-logo.png" height="12" width="12" alt="linkedin"> </a>&nbsp;&nbsp; <a href="#" title="youtube" target="_blank" style="display: inline-block"><img src="https://antplay.tech/extra/images/icon-svg/youtube.png" alt="youtube" width="12" height="12"></a></td>
+                      </tr>
+                      <tr style="background-color:#e8e8e8;">
+                        <td colspan="2" align="center" style="padding-top:15px; padding-bottom:15px;"><img src="https://antplay.tech/images/logo.png" width="auto" height="auto" alt="Ant Play Logo"></td>
+                      </tr>
+                      <tr>
+                        <td colspan="2" class="wrapper" style="font-family: sans-serif; font-size: 14px; vertical-align: top; box-sizing: border-box; padding: 50px 50px;"><table border="0" cellpadding="0" cellspacing="0" style="border-collapse: separate; mso-table-lspace: 0pt; mso-table-rspace: 0pt; width: 100%;">
+                            <tr>
+                              <td style="font-family: sans-serif; font-size: 14px; vertical-align: top;"><p style="font-family: sans-serif; font-size: 14px; font-weight: normal; margin: 0; Margin-bottom: 20px;">Hi '.$emailid.',</p>
+                                <p style="font-family: sans-serif; font-size: 14px; font-weight: normal; margin: 0; Margin-bottom: 10px;">Welcome to Ant PLAY! We’re so excited to have you join us. We’re feeling pretty lucky that you chose us, and we just want to say thank you.</p>
+                                <p style="font-family: sans-serif; font-size: 14px; font-weight: normal; margin: 0; Margin-bottom: 10px;">To get you settled, We wanted to share with you some of our best resources so you can make the most out of your experience with us. Check out our Instagram, Facebook, and Twitter for your daily dose of industry news, advice, and behind-the-scenes looks.</p></td>
+                            </tr>
+                            <tr>
+                              <td align="left" valign="top"><p style="font-family: sans-serif; font-size: 14px; font-weight: normal; margin: 0; ">&nbsp;</p></td>
+                            </tr>
+                            <tr>
+                              <td height="52"><p style="padding-bottom: 0px; font-family: sans-serif; font-size:14px;">Cheers, <br>
+                                  <strong style="font-family: sans-serif;">Antplay</strong> </p></td>
+                            </tr>
+                          </table></td>
+                      </tr>
+                      <!-- END MAIN CONTENT AREA -->
+                    </table>
+                    <!-- START FOOTER -->
+                    <div class="footer" style="margin: 0px 0 0; background-color:#ffffff; background:#ffffff;">
+                      <table border="0" cellpadding="0" cellspacing="0" style="border-top:2px solid #eee; border-collapse: separate;mso-table-lspace: 0pt;mso-table-rspace: 0pt;width: 100%; background-color:#ffffff;">
+                        <tbody>
+                          <tr>
+                            <td>&nbsp;</td>
+                          </tr>
+                          <tr>
+                            <td style="font-size: 12px; color: #666; text-align: center; font-family: sans-serif;font-size: 14px;vertical-align: top; color: #494949;"><span></span></td>
+                          </tr>
+                          <tr>
+                            <td style="font-size: 12px; color: #666; text-align: center; font-family: sans-serif;font-size: 14px;vertical-align: top; color: #494949;"><a href="#" title="Terms & Conditions">Terms & Conditions</a> &nbsp; &#124; &nbsp; <a href="#" title="Privacy Policy">Privacy Policy</a>. </td>
+                          </tr>
+                          <tr>
+                            <td style="height:20px"></td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                    <!-- END FOOTER --> 
+                    <!-- END CENTERED WHITE CONTAINER --> 
+                  </div></td>
+                <td style="font-family: sans-serif; font-size: 14px; vertical-align: top;">&nbsp;</td>
+              </tr>
+            </table>';
+				
+			$body	=  	$msg_c;	
+			$result2 = $this->email
+            ->from('no-reply@antplay.tech','ANT PLAY')
+            ->reply_to('no-reply@antplay.tech')    // Optional, an account where a human being reads.
+            ->to($emailid)
+            ->bcc('sanjeet@ant-pc.com')
+            ->subject('Thank You')
+            ->message($body)
+            ->send();
+            if($result2){
+				return 1;
+            }else{
+				return 0;
+			}
+    }
+    public function goforlogin(){
+        $emailid = $this->input->post('emailid');
+        $emailid = str_replace(' ','',$emailid);
+        $userpassword = md5($this->input->post('userpassword'));
+        $query = $this->db->query("CALL loginmethod('".$emailid."','".$userpassword."')");
+        $result = $query->result_array();
+        $numofresult = count($result);
+        mysqli_next_result( $this->db->conn_id );
+        $id         = $result[0]['id'];
+        $fullname   = $result[0]['fullname'];
+        $emailid    = $result[0]['emailid'];
+        $contactnum = $result[0]['contactnum'];
+        $signupdate = $result[0]['signupdate'];
+        $status     = $result[0]['status'];
+        $pay_status = $result[0]['pay_status'];
+        $session_data = array('id'=>$id,'fullname'=>$fullname,'emailid'=>$emailid,'contactnum' =>$contactnum,'signupdate'=>$signupdate,'status'=>$status,'pay_status'=>$pay_status);
+        
+        if($numofresult>0){
+            $condition = "emailid =" . "'" . $emailid ."'";
+            $this->db->select('*');
+            $this->db->from('ply_signup');
+            $this->db->where($condition);
+            $query = $this->db->get();
+            $result = $query->result();
+            if($result[0]->status=="0"){
+                return 2;
+            }else{
+                $loginName = $this->session->set_userdata('userSignUpId',$session_data);
+               return 1;
+            }
+        }else{
+            return 0;
+        }
+    }
+    public function getProfileData(){
+        $loginName = $this->session->userdata('userSignUpId');
+	    $id        = $loginName['id'];
+        $condition = "ply_signup.id =" . "'" . $id ."'";
+        $this->db->select('ply_signup.id,ply_signup.fullname,ply_signup.age,ply_signup.emailid,ply_signup.state,ply_signup.contactnum,ply_signup.status,ply_signup.idproof,ply_signup.adhaarfront,ply_signup.adhaarback,ply_signup.passport,ply_signup.drivingLicense,ply_signup.electionFront,ply_signup.electionBack,ply_profile_pic.id as picid,ply_profile_pic.user_id,ply_profile_pic.imageName');
+        $this->db->from('ply_signup');
+        $this->db->join('ply_profile_pic', 'ply_profile_pic.user_id = ply_signup.id');
+        $this->db->where($condition);
+        $query = $this->db->get();
+        $result = $query->result();
+        return $result;
+    }
+    public function updateProfilePic(){
+        $loginName  = $this->session->userdata('userSignUpId');
+	    $id         = $loginName['id'];
+	    $data = $this->input->post('image');
+	    $image_array_1 = explode(";", $data);
+	    $image_array_2 = explode(",", $image_array_1[1]);
+	    $data = base64_decode($image_array_2[1]);
+	    file_put_contents($imageName, $data);
+	    echo '<img src="'.$imageName.'" class="img-thumbnail" />';
+    }
+    public function UpdateProfileData(){
+        $loginName  = $this->session->userdata('userSignUpId');
+	    $id         = $loginName['id'];
+        $fullname   = $this->input->post('fullname');
+        $age        = $this->input->post('age');
+        $contactnum = $this->input->post('contactnum');
+        $emailid    = $this->input->post('emailid');
+        $emailid    = str_replace(' ','',$emailid);
+        $state      = $this->input->post('statename');
+        $idproof    = $this->input->post('idproof');
+        
+        $adhaarFrontnew_name    = $_FILES["AdhaarFront"]["name"];
+        $adhaarBacknew_name     = $_FILES["AdhaarBack"]["name"];
+        $passportnew_name       = $_FILES["passport"]["name"];
+        $DrivingLicensenew_name = $_FILES["DrivingLicense"]["name"];
+        $electionFrontnew_name  = $_FILES["electionFront"]["name"];
+        $electionBacknew_name   = $_FILES["electionBack"]["name"];
+
+        /* Adhar Section Start*/
+        if($adhaarFrontnew_name!="" && $adhaarBacknew_name!=""){
+            $afuniq = uniqid(rand(), true);
+            $abuniq = uniqid(rand(), true);
+            $tempnameAdhaarFront = $_FILES['AdhaarFront']['tmp_name'];
+            $AdhaarFrontname = $_FILES["AdhaarFront"]["name"];
+            $aext = explode(".", $AdhaarFrontname); //extra () to prevent notice
+		    $aext = end($aext); 
+            $adhaarFrontnew_name ="extra/adhar/".$cdate."-".$fullname.$afuniq .".".$aext;
+            $adhaarFrontfilesize = $_FILES["AdhaarFront"]["size"];
+            if($adhaarFrontfilesize < 1000000 && $adhaarFrontfilesize!=""){
+                if($aext=="pdf" || $aext=="PDF" || $aext=="png" || $aext=="PNG" || $aext=="jpg" || $aext=="JPG" || $aext=="jpeg" || $aext=="JPEG") {
+                    move_uploaded_file($tempnameAdhaarFront,$adhaarFrontnew_name);
+                }else{
+                    echo "Adhar allow only in JPG,JPEG,PNG or PDF format!"; echo '<a href="https://antplay.tech/dashboard"> BACK <a>';  die();
+                }
+            }
+            $tempnameAdhaarBack  = $_FILES['AdhaarBack']['tmp_name'];
+            $AdhaarBackname = $_FILES["AdhaarBack"]["name"];
+            $abext = explode(".", $AdhaarBackname);
+            $abext = end($abext); 
+            $adhaarBacknew_name ="extra/adhar/".$cdate."-".$fullname.$abuniq .".".$abext;
+            $adhaarBackfilesize = $_FILES["AdhaarBack"]["size"];
+            if($adhaarBackfilesize < 1000000 && $adhaarBackfilesize!=""){
+                if($abext=="pdf" || $abext=="PDF" || $abext=="png" || $abext=="PNG" || $abext=="jpg" || $abext=="JPG" || $abext=="jpeg" || $abext=="JPEG") {
+                    move_uploaded_file($tempnameAdhaarBack,$adhaarBacknew_name);
+                }else{
+                    echo "Adhar allow only in JPG,JPEG,PNG or PDF format!";  echo '<a href="https://antplay.tech/dashboard"> BACK <a>'; die();
+                }
+            }else{
+                echo "Adhar File size exceeded!";  echo '<a href="https://antplay.tech/dashboard"> BACK <a>'; die();
+            }
+            $datas = array('adhaarfront'=>$adhaarFrontnew_name,'adhaarback'=>$adhaarBacknew_name);
+            $this->db->where('id',$id);
+            $this->db->update('ply_signup',$datas);
+        }
+        
+        if($passportnew_name!=""){
+            $pasuniq = uniqid(rand(), true);
+            $tempnamepassport = $_FILES["passport"]["tmp_name"];
+            $passportname = $_FILES["passport"]["name"];
+            $adext = explode(".", $passportname);
+            $adext = end($adext); 
+            $passportnew_name ="extra/passport/".$cdate."-".$fullname.$pasuniq .".".$adext;
+            $passportfilesize = $_FILES["passport"]["size"];
+            if($passportfilesize < 1000000 && $passportfilesize!=""){
+                if($adext=="pdf" || $adext=="PDF" || $adext=="png" || $adext=="PNG" || $adext=="jpg" || $adext=="JPG" || $adext=="jpeg" || $adext=="JPEG") {
+                    move_uploaded_file($tempnamepassport,$passportnew_name);
+                }else{
+                     echo "Passport allow only in JPG,PNG or PDF format!";  echo '<a href="https://antplay.tech/dashboard"> BACK <a>'; die();
+                }
+            }else{
+                echo "Passport File size exceeded!";  echo '<a href="https://antplay.tech/dashboard"> BACK <a>'; die();
+            }
+            $datas = array('passport'=>$passportnew_name);
+            $this->db->where('id',$id);
+            $this->db->update('ply_signup',$datas);
+        }
+
+        if($DrivingLicensenew_name!=""){
+            $licuniq = uniqid(rand(), true);
+            $tempnameDrivingLicense = $_FILES["DrivingLicense"]["tmp_name"];
+            $DrivingLicensename = $_FILES["DrivingLicense"]["name"];
+            $dlext = explode(".", $DrivingLicensename);
+            $dlext = end($dlext); 
+            $DrivingLicensenew_name ="extra/dlicense/".$cdate."-".$fullname.$licuniq .".".$dlext;
+            $DrivingLicensefilesize = $_FILES["DrivingLicense"]["size"];
+            if($DrivingLicensefilesize < 1000000 && $DrivingLicensefilesize!=""){
+                if($dlext=="pdf" || $dlext=="PDF" || $dlext=="png" || $dlext=="PNG" || $dlext=="jpg" || $dlext=="JPG" || $dlext=="jpeg" || $dlext=="JPEG") {
+                    move_uploaded_file($tempnameDrivingLicense,$DrivingLicensenew_name);
+                }else{
+                     echo "Driving License allow only in JPG,PNG or PDF format!";  echo '<a href="https://antplay.tech/dashboard"> BACK <a>'; die();
+                }
+            }else{
+                echo "Driving File size exceeded!";  echo '<a href="https://antplay.tech/dashboard"> BACK <a>'; die();
+            }
+            $datas = array('drivingLicense'=>$DrivingLicensenew_name);
+            $this->db->where('id',$id);
+            $this->db->update('ply_signup',$datas);
+        }
+        
+        if($electionFrontnew_name!="" || $electionBacknew_name!=""){
+            $elfuniq = uniqid(rand(), true);
+            $elbuniq = uniqid(rand(), true);
+            $tempnameelectionFront = $_FILES["electionFront"]["tmp_name"];
+            $electionFrontname = $_FILES["electionFront"]["name"];
+            $elfext = explode(".", $electionFrontname);
+            $elfext = end($elfext); 
+            $electionFrontnew_name ="extra/election/".$cdate."-".$fullname.$elfuniq .".".$elfext;
+            $electionFrontsize = $_FILES["electionFront"]["size"];
+            if($electionFrontsize < 1000000 && $electionFrontsize!=""){
+                 if($elfext=="pdf" || $elfext=="PDF" || $elfext=="png" || $elfext=="PNG" || $elfext=="jpg" || $elfext=="JPG" || $elfext=="jpeg" || $elfext=="JPEG") {
+                     move_uploaded_file($tempnameelectionFront,$electionFrontnew_name);
+                 }else{
+                     echo "Election ID allow only in JPG,PNG or PDF format!";  echo '<a href="https://antplay.tech/dashboard"> BACK <a>'; die();
+                 }
+            }else{
+                echo "Election ID File size exceeded!";  echo '<a href="https://antplay.tech/dashboard"> BACK <a>'; die();
+            }
+            
+            $tempnameelectionBack = $_FILES["electionBack"]["tmp_name"];
+            $electionBackname = $_FILES["electionBack"]["name"];
+            $elbext = explode(".", $electionBackname);
+            $elbext = end($elbext);
+            $electionBacknew_name ="extra/election/".$cdate."-".$fullname.$elbuniq .".".$elbext;
+            $electionBacktsize = $_FILES["electionBack"]["size"];
+            if($electionBacktsize < 1000000 && $electionBacktsize!=""){
+                if($elbext=="pdf" || $elbext=="PDF" || $elbext=="png" || $elbext=="PNG" || $elbext=="jpg" || $elbext=="JPG" || $elbext=="jpeg" || $elbext=="JPEG") {
+                    move_uploaded_file($tempnameelectionBack,$electionBacknew_name);
+                }else{
+                    echo "Election ID allow only in JPG,PNG or PDF format!";  echo '<a href="https://antplay.tech/dashboard"> BACK <a>'; die();
+                }
+            }else{
+                echo "Election ID File size exceeded!";  echo '<a href="https://antplay.tech/dashboard"> BACK <a>'; die();
+            }
+            
+            $datas = array('electionFront'=>$electionFrontnew_name,'electionBack'=>$electionBacknew_name);
+            $this->db->where('id',$id);
+            $this->db->update('ply_signup',$datas);
+        }
+        
+        $datas = array('fullname'=>$fullname,'age'=>$age,'emailid'=>$emailid,'state'=>$state,'contactnum' =>$contactnum,'idproof'=>$idproof);
+        $this->db->where('id',$id);
+	    if($this->db->update('ply_signup',$datas)){
+	        $this->session->set_flashdata('msg','Successfully Updated!');
+			return 1;
+		}else{
+		   $this->session->set_flashdata('msg','Not Updated! Something Went Wrong!');
+		   return 0;
+		}
+    }
+    public function updatePassword(){
+        $loginName  = $this->session->userdata('userSignUpId');
+	    $id         = $loginName['emailid'];
+        $currentpwd = md5($this->input->post('currentpwd'));
+        $newpwd     = md5($this->input->post('newpwd'));
+        $condition = "emailid =" . "'" . $id . "' AND " . "userpassword =" ."'" . $currentpwd."'";
+        $this->db->select('userpassword');
+        $this->db->from('ply_signup');
+        $this->db->where($condition);
+        $query = $this->db->get();
+        if($query->num_rows()==1){
+            $datas = array('userpassword'=>$newpwd);
+            $this->db->where('emailid',$id);
+            if($this->db->update('ply_signup',$datas)){
+                return 1;
+            }else{
+                return 0;
+            }
+        }else{
+            return 2;
+        }
+    }
+    public function resetPassword(){
+        $newpassword = $this->input->post('newpassword');
+        $confirmpassword = $this->input->post('confirmpassword');
+        $cnvbfh = base64_decode($this->input->post('cnvbfh'));
+        if($newpassword==$confirmpassword){
+            $newpwd = md5($confirmpassword);
+            $datas = array('userpassword'=>$newpwd);
+            $this->db->where('emailid',$cnvbfh);
+            $this->db->update('ply_signup',$datas);
+            return true;
+        }else{
+            echo "Bad Request!";
+            return false;
+        }
+    }
+    public function getAllresult($tablename){
+        $status=1;
+        $condition = "status =" . "'" . $status ."'";
+        $this->db->select('*');
+        $this->db->from($tablename);
+        $this->db->where($condition);
+        $query = $this->db->get();
+        $result = $query->result();
+        return $result;
+    }
+    public function getCpuDataById($proid,$tablename){
+        $status=1;
+		$arrdata=[];
+		foreach($proid as $proidVal){
+    	    $condition = "id  =" . "'" . $proidVal. "'"." AND"." status  =" . "'" . $status. "'";
+    		$this->db->select('*');
+    		$this->db->from($tablename);
+    		$this->db->where($condition);
+    		$query = $this->db->get();
+    		$details = $query->result();
+    		$arrdata = array_merge($arrdata,$details); 
+		}
+	    return $arrdata;
+    }
+    public function getDataById($id,$tablename){
+        $condition = "id =" . "'" . $id ."'";
+        $this->db->select('*');
+        $this->db->from($tablename);
+        $this->db->where($condition);
+        $query = $this->db->get();
+        $result = $query->result();
+        return $result;
+    }
+    public function getDataByRowDaysId($rowid,$numofdays,$tablename){
+        $condition = "id  =" . "'" . $numofdays. "'"." AND"." plan_id  =" . "'" . $rowid. "'";
+        $this->db->select('*');
+        $this->db->from($tablename);
+        $this->db->where($condition);
+        $query = $this->db->get();
+        $result = $query->result();
+        $this->db->last_query();
+        return $result;
+    }
+    public function getplaybyid($oid,$numofdays){
+        $condition = "ply_plan.id =" . "'" . $oid ."'";
+        $this->db->select('ply_plan.id,ply_plan.psu,ply_plan.ram,ply_plan.gpu,ply_plan.ssd,ply_plan.upstrem,ply_plan.status,ply_plan_price.id as priceid,ply_plan_price.plan_id,ply_plan_price.plan_days,ply_plan_price.plan_price,ply_plan_price.status as pricestatus');
+        $this->db->from('ply_plan');
+        $this->db->join('ply_plan_price', 'ply_plan_price.id = "'.$numofdays.'"');
+        $this->db->where($condition);
+        $query = $this->db->get();
+        $result = $query->result();
+        return $result;
+    }
+    public function contactusData(){
+        date_default_timezone_set('Asia/Calcutta');
+		$cdate      = date('Y-m-d h-i-s');
+        $uname    = $this->input->post('uname');
+        $ucontact = $this->input->post('ucontact');
+        $uemail   = $this->input->post('uemail');
+        $subject  = $this->input->post('subject');
+        $description = $this->input->post('description');
+        $datas = array('uname' => $uname,'ucontact' => $ucontact,'uemail' => $uemail,'subject' => $subject,'description' => $description,'cdate' => $cdate);
+        $this->db->insert('ply_contact',$datas);
+		$insert_id = $this->db->insert_id();
+		$i= $this->db->affected_rows();
+        if($i>0){ 
+            
+            $message='<!DOCTYPE html>
+<html lang="en">
+<head>
+  <title>ANTPLAY</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1"> 
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+  <style type="text/css">
+    body{
+      margin: 0;
+      padding: 0;
+      background: #f8f8f8;
+      font-family: "Roboto", sans-serif;
+    }
+    a{
+      text-decoration: none;
+      color:#2bc3d0;
+      font-weight: bold
+    }
+    p{
+     font-size: 14px;
+     color: #323232;
+     line-height: 24px;
+     margin: 0
+    }
+    .main-sec{
+      width: 100%;
+      max-width: 600px;
+      border:1px solid #ddd;
+      margin: 0 auto;
+      background:#fff;
+      text-align: center;
+    }
+    .logo-sec{
+      padding: 10px 0;
+      border-bottom: 1px solid #f8f8f8;;
+    }
+    .logo-sec img{
+      height: 50px;
+    }
+    .msg-box{
+      text-align: left;
+      margin: 0px auto;
+      background:#fff;     
+      padding: 30px;
+      border-radius: 10px;       
+    }
+    .msg-box img{
+      height: 100px;
+    }
+    .footer{
+      background:#f8f8f8;      
+    }
+    .footer td{
+      padding: 15px 0 0;
+    }
+    .footer p{
+      margin-bottom: 5px;
+      margin-top: 0;
+      font-size: 14px;
+      line-height: normal;
+    }
+    .social-icons{
+      background:#2bc3d0;
+      margin: 0;
+      padding: 5px 0;
+      text-align: center;
+    }
+    .social-icons li{
+      list-style-type:none;
+      display: inline-block;
+    }
+    .social-icons li a{     
+      text-align: center;
+     
+    }
+    .social-icons li a img{     
+      object-fit: contain;
+    }
+    .btn-reset{
+      background:#2bc3d0;
+      display: inline-block;
+      margin: 0 auto;
+      color: #fff;
+      text-align: center;
+      padding: 10px 20px;
+      text-decoration: none;
+      border-radius: 10px;
+      font-size: 14px;
+    }
+
+  </style>
+</head>
+<body>
+
+<!-- Section starts -->
+<div class="main-sec">
+  <table width="100%" cellspacing="0" cellpadding="0" border="0" style="margin: 0 auto;">
+    <tr style="padding: 20px 0;">
+      <td class="logo-sec">
+        <img src="https://antplay.tech/images/logo.png" alt="">
+      </td>
+    </tr>
+    <tr>
+      <td style="padding: 20px; min-height: 250px;">
+        <div class="msg-box">          
+          <p>
+            Hello '.$uname.'<br>          
+          </p>
+          <br>
+          <p>
+            Thank for raising below request with Ant Play cloud pc.
+          </p>
+           <br>
+
+          <p>
+            '.$description.'
+          </p>
+           <br>
+            <br>
+          <p>
+            <strong>We will get back to you as soon as possible. </strong>
+          </p>
+           <br>
+         
+          <br>
+          <p>
+            <strong>Ant Play Team</strong><br>           
+          </p>
+        </div>
+      </td>
+    </tr>
+    <tr class="footer">
+      <td>
+        
+        <ul class="social-icons">         
+           <li>
+            <a href="https://www.facebook.com/AntPlay.tech/">
+              <img src="https://antplay.tech/images/facebook.png" alt="">
+            </a>
+          </li> 
+          <li>
+           <a href="https://www.youtube.com/channel/UCxcqbWaOReR9O9PlTneYqAQ">
+            <img src="https://antplay.tech/images/youtube.png" alt="">
+          </a>
+        </li>          
+           <li>
+            <a href="https://www.instagram.com/antplay.tech/">
+            <img src="https://antplay.tech/images/instagram.png" alt="">
+             </a>
+          </li>
+           
+           <li>
+            <a href="https://www.linkedin.com/company/antplay">
+            <img src="https://antplay.tech/images/linkedin.png" alt="">
+             </a>
+          </li>
+        </ul>
+      </td>
+    </tr>
+  </table>
+</div>
+</body>
+</html>';
+
+if($subject=="Support"){
+    $body =$message;
+    $result = $this->email
+    ->from('support@antplay.tech','ANT PLAY')
+    ->to($uemail)
+    ->bcc('sanjeet@ant-pc.com,marketing@acrotechindia.com,support@antplay.tech')
+    ->subject('ANT PLAY Support '.$subject.' ')
+    ->message($body)
+    ->send(); 
+}else{
+    $body =$message;
+    $result = $this->email
+    ->from('support@antplay.tech','ANT PLAY')
+    ->to($uemail)
+    ->bcc('sanjeet@ant-pc.com,marketing@acrotechindia.com')
+    ->subject('ANT PLAY Support '.$subject.' ')
+    ->message($body)
+    ->send(); 
+}
+
+return true; 		
+	}else{
+	    return false;
+	}
+}
+    public function changePasswordmail($emailid){
+    $condition = "emailid =" . "'" . $emailid ."'";
+    $this->db->select('id,fullname');
+    $this->db->from('ply_signup');
+    $this->db->where($condition);
+    $query = $this->db->get();
+    $result = $query->result();
+    $fullname = $result[0]->fullname;
+
+    date_default_timezone_set('Asia/Calcutta');
+	$cdate       = date('Y-m-d h-i-s');
+	$six_Digit   = substr(str_shuffle(str_repeat("0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz/-@_&", 6)), 0, 6);
+	$message = '<!DOCTYPE html>
+<html lang="en">
+<head>
+  <title>ANTPLAY</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1"> 
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+  <style type="text/css">
+   body{margin:0;padding:0;background:#f8f8f8;font-family:Roboto,sans-serif}a{text-decoration:none;color:#2bc3d0;font-weight:700}p{font-size:14px;color:#323232;line-height:24px;margin:0}.main-sec{width:100%;max-width:600px;border:1px solid #ddd;margin:0 auto;background:#fff;text-align:center}.logo-sec{padding:10px 0;border-bottom:1px solid #f8f8f8}.logo-sec img{height:50px}.msg-box{text-align:left;margin:0 auto;background:#fff;padding:30px;border-radius:10px}.msg-box img{height:100px}.footer{background:#f8f8f8}.footer td{padding:15px 0 0}.footer p{margin-bottom:5px;margin-top:0;font-size:14px;line-height:normal}.social-icons{background:#2bc3d0;margin:0;padding:5px 0;text-align:center}.social-icons li{list-style-type:none;display:inline-block}.social-icons li a{text-align:center;margin:0 4px}.social-icons li a img{object-fit:contain}.btn-comm{background:#2bc3d0;display:inline-block;margin:0 auto;color:#fff;text-align:center;padding:10px 20px;text-decoration:none;border-radius:10px;font-size:14px}
+  </style>
+</head>
+<body>
+<!-- Section starts -->
+<div class="main-sec">
+  <table width="100%" cellspacing="0" cellpadding="0" border="0" style="margin: 0 auto;">
+    <tr style="padding: 20px 0;">
+      <td class="logo-sec">
+        <img src="https://antplay.tech/images/logo.png" alt="">
+      </td>
+    </tr>
+    <tr>
+      <td style="padding: 20px; min-height: 250px;">
+        <div class="msg-box">          
+          <p>
+            Hello '.$fullname.',<br>          
+          </p><br>
+           <p>
+            <strong>
+              A request has been received to change the password for you Antplay account.
+            </strong>
+           </p><br>
+           <a href="https://antplay.tech/change-password?xml2IxcD='.$six_Digit.'&e='.base64_encode($emailid).'" target="_blank" class="btn-comm">Reset Password</a>
+           <br><br>
+           <p>
+             If you did not initiate this request, please contact us immediately at <a href="mailto:support@antplay.tech">support@antplay.tech</a>
+           </p>
+           <br>
+          <p>
+            <span>Thank You</span><br>
+            <strong>Antplay Team</strong><br>           
+          </p>
+        </div>
+      </td>
+    </tr>
+    <tr class="footer">
+      <td>
+        <ul class="social-icons">         
+           <li>
+            <a href="https://www.facebook.com/AntPlay.tech/">
+              <img src="https://antplay.tech/images/facebook.png" alt="">
+            </a>
+          </li> 
+          <li>
+           <a href="https://www.youtube.com/channel/UCxcqbWaOReR9O9PlTneYqAQ">
+            <img src="https://antplay.tech/images/youtube.png" alt="">
+          </a>
+        </li>          
+           <li>
+            <a href="https://www.instagram.com/antplay.tech/">
+            <img src="https://antplay.tech/images/instagram.png" alt="">
+             </a>
+          </li>
+           <li>
+            <a href="https://www.linkedin.com/company/antplay">
+            <img src="https://antplay.tech/images/linkedin.png" alt="">
+             </a>
+          </li>
+        </ul>
+      </td>
+    </tr>
+  </table>
+</div>
+</body>
+</html>';
+$body =$message;
+$result = $this->email
+->from('no-reply@antplay.tech','ANT PLAY')
+->to($emailid)
+->subject('ANT PLAY-Account Password Activation Link')
+->message($body)
+->send();
+    if($result){
+		return 1;
+    }else{
+		return 0;
+	}
+}
+
+public function ordermail($order_id,$order_status,$pmethod,$payId,$planid,$amount,$fullname,$cdate,$email,$contactnum){
+    $tablename="ply_plan";
+    $condition = "id =" . "'" . $planid ."'";
+    $this->db->select('*');
+    $this->db->from($tablename);
+    $this->db->where($condition);
+    $query = $this->db->get();
+    $result = $query->result();
+    $psu = $result[0]->psu;
+    $ram = $result[0]->ram;
+    $gpu = $result[0]->gpu;
+    $ssd = $result[0]->ssd;
+    $upstrem = $result[0]->upstrem;
+    $message='<!DOCTYPE html>
+<html lang="en">
+<head>
+  <title>ANTPLAY</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1"> 
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+  <style type="text/css">
+   body{margin:0;padding:0;background:#f8f8f8;font-family:Roboto,sans-serif}a{text-decoration:none;color:#2bc3d0;font-weight:700}p{font-size:14px;color:#323232;line-height:24px;margin:0}.main-sec{width:100%;max-width:600px;border:1px solid #ddd;margin:0 auto;background:#fff;text-align:center}.main-sec2{width:100%;max-width:570px;margin:0 auto;background:#fff;text-align:left; padding: 15px;}.logo-sec img{height:50px}.msg-box{text-align:left;margin:0 auto;background:#fff;padding:0 30px 30px;border-radius:10px}.msg-box img{max-height:100px}.footer{background:#f8f8f8}.footer td{padding:15px 0 0}.footer p{margin-bottom:5px;margin-top:0;font-size:14px;line-height:normal}.social-icons{background:#2bc3d0;margin:0;padding:5px 0;text-align:center}.social-icons li{list-style-type:none;display:inline-block}.social-icons li a{text-align:center}.social-icons li a img{object-fit:contain}.btn-reset{background:#2bc3d0;display:inline-block;margin:0 auto;color:#fff;text-align:center;padding:10px 20px;text-decoration:none;border-radius:10px;font-size:14px}.msg-box img.success-img{height:auto;margin:0 auto;display:block}.price-text{color:#2bc3d0;font-size:30px;text-align:center;margin:0 auto 5px}.price-text img{margin-right:2px}.logo-sec{padding:10px 0 0}.paid-successText{color:#878686;font-size:18px;font-weight:700;text-align:center;border-bottom:1px solid #f4f4f4;padding-bottom:10px;margin-bottom:10px}.paymentInfo p{font-size:14px;font-weight:700}.p-dated{text-align:right}.p-id{text-align:left}.paymentDetailsInn td{border-top:1px solid #f4f4f4;font-size:14px;padding:10px}.paymentDetails td{vertical-align:top}.paymentSpecs td{border-top:0;font-size:14px;padding:5px}.paymentDetailsHeading td{border-top:1px solid #f4f4f4;border-bottom:1px solid #f4f4f4;font-size:14px;padding:10px 5px}
+   .userInfo{
+      text-align: center;
+      background: #2bc3d0;
+      padding: 15px;
+      color: #fff;
+      margin-bottom: 30px
+    }
+    .userInfo tr{
+      margin: 10px 0;
+      height: 20px
+    }
+    .userInfo tr td{
+      font-size: 14px;
+    }
+    .text-right{
+      text-align: right;
+    }
+    .text-left{
+      text-align: left;
+    }
+  </style>
+</head>
+<body>
+<div class="main-sec2">
+Hello '.$email.'<br><br>
+Thanks for booking your AntPlay system,<br>
+We will share your login credentials in 24-48 hours.<br><br>
+Please find the invoice for your plan below<br>
+</div>
+<!-- Section starts -->
+<div class="main-sec">
+  <table width="100%" cellspacing="0" cellpadding="0" border="0" style="margin: 0 auto;">
+    <tr style="padding: 20px 0 0;">
+      <td class="logo-sec">
+        <img src="https://antplay.tech/images/logo.png" alt="">
+      </td>
+    </tr>
+    <tr>
+      <td style="padding: 0px 20px 20px; min-height: 250px;">
+        <div class="msg-box">           
+        <h3 class="price-text">
+          <img src="https://antplay.tech/images/rupeeIcon.png" alt="">'.$amount.'
+        </h3>  
+        <p class="paid-successText">Payment ('.$order_status.')</p>   
+        <table width="100%" cellspacing="0" cellpadding="0" border="0" style="margin: 0 auto;" class="userInfo">
+          <tr>
+            <td class="text-left"><strong>Name</strong></td>
+            <td class="text-right"><strong>'.$fullname.'</strong></td>
+          </tr>
+          <tr>
+            <td class="text-left"><strong>Email Id</strong></td>
+            <td class="text-right"><strong>'.$email.'</strong></td>
+          </tr>
+          <tr>
+            <td class="text-left"><strong>Contact Number</strong></td>
+            <td class="text-right"><strong>'.$contactnum.'</strong></td>
+          </tr>
+        </table> 
+        <table width="100%" cellspacing="0" cellpadding="0" border="0" style="margin: 0 auto;">
+        <tr>
+            <td colspan="2">&nbsp;</td>
+          </tr>
+            <tr class="paymentInfo">
+              <td>
+                  <p class="p-id">Payment Id :'.$payId.'</p>
+              </td>
+              <td>
+                <p class="p-dated">'.$cdate.'</p>               
+              </td>
+            </tr>
+        </table>
+         <table width="100%" cellspacing="0" cellpadding="0" border="0" style="margin: 5px auto 0;">
+            <tr class="paymentDetails">
+              <td>
+                 <table width="100%" cellspacing="0" cellpadding="0" border="0" style="margin: 0 auto;">
+                  <tr class="paymentDetailsHeading">
+                    <td colspan="2"><strong>Specifications</strong></td>                  
+                  </tr>
+                  <tr class="paymentSpecs">
+                    <td><strong>Processor</strong></td>
+                    <td>'.$psu.'</td>
+                  </tr>
+                  <tr class="paymentSpecs">
+                    <td><strong>Ram</strong></td>
+                    <td>'.$ram.'</td>
+                  </tr>
+                  <tr class="paymentSpecs">
+                    <td><strong>Graphic Card</strong></td>
+                    <td>'.$gpu.'</td>
+                  </tr>
+                  <tr class="paymentSpecs">
+                    <td><strong>SSD</strong></td>
+                    <td>'.$ssd.'</td>
+                  </tr>
+                </table>
+              </td>
+              <td>
+                <table width="100%" cellspacing="0" cellpadding="0" border="0" style="margin: 0 auto;">
+                  <tr class="paymentDetailsInn">
+                    <td style="text-align: right;"><strong> Price</strong></td>
+                  </tr>
+                </table>  
+                <table width="100%" cellspacing="0" cellpadding="0" border="0" style="margin: 0 auto;">
+                  <tr class="paymentDetailsInn">                   
+                    <td style="text-align: right;">  <strong><img src="images/rupeeIconSm.png"  alt="">'.$amount.'</strong></td>
+                  </tr>
+                </table>             
+              </td>
+            </tr>
+           <tr>            
+             <td colspan="2">
+               <table width="100%" cellspacing="0" cellpadding="0" border="0" style="margin: 0 auto;">
+                 <tr>
+                   <td style="text-align: right;">
+                     <table width="100%" cellspacing="0" cellpadding="0" border="0" style="margin: 0 auto;">
+                      <tr class="paymentDetailsInn">
+                        <td><strong>Total Price</strong></td>
+                        <td style="text-align: right;"> <strong><img src="images/rupeeIconSm.png"  alt="">'.$amount.'</strong></td>
+                      </tr>
+                    </table>
+                   </td>
+                 </tr>
+               </table>
+             </td>
+           </tr>
+        </table>
+          <br>
+          <br>
+          <p>
+            <strong>Ant Play Team</strong><br>           
+          </p>
+        </div>
+      </td>
+    </tr>
+    <tr class="footer">
+      <td>
+        <ul class="social-icons">         
+           <li>
+            <a href="https://www.facebook.com/AntPlay.tech/">
+              <img src="https://antplay.tech/images/facebook.png" alt="">
+            </a>
+          </li> 
+          <li>
+           <a href="https://www.youtube.com/channel/UCxcqbWaOReR9O9PlTneYqAQ">
+            <img src="https://antplay.tech/images/youtube.png" alt="">
+          </a>
+        </li>          
+           <li>
+            <a href="https://www.instagram.com/antplay.tech/">
+            <img src="https://antplay.tech/images/instagram.png" alt="">
+             </a>
+          </li>
+           <li>
+            <a href="https://www.linkedin.com/company/antplay">
+            <img src="https://antplay.tech/images/linkedin.png" alt="">
+             </a>
+          </li>
+        </ul>
+      </td>
+    </tr>
+  </table>
+</div>
+</body>
+</html>';
+ 
+$body =$message;
+$result = $this->email
+->from('support@antplay.tech','ANTPLAY')
+->to($email)
+->bcc('sanjeet@ant-pc.com,marketing@acrotechindia.com,accounts1@ant-pc.com')
+->subject('ANTPLAY Payment '.$order_status.' ')
+->message($body)
+->send();   
+    if($result){
+        return true;
+    }else{
+        return false;
+    }
+}
+
+public function getOrderByUserId($id,$tablename){
+    $condition = "customer_id  =" . "'" . $id. "'";
+    $this->db->select('*');
+    $this->db->from($tablename);
+    $this->db->order_by("id", "desc");
+    $this->db->where($condition);
+    $query = $this->db->get();
+    $result = $query->result();
+    $this->db->last_query();
+    return $result;
+}
+
+public function getAllArticles(){
+    $status = 1;
+    $condition = "status  =" . "'" . $status. "'";
+    $this->db->select('*');
+    $this->db->from('ply_articles');
+    $this->db->order_by("id", "desc");
+    $this->db->where($condition);
+    $query = $this->db->get();
+    $result = $query->result();
+    $this->db->last_query();
+    return $result;
+}
+
+
+}
